@@ -1,47 +1,39 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 const express = require('express');
+const { setLastQrData, registerQrRoute } = require('./routes/qrCode');
+const { registerSendMessageRoute } = require('./routes/sendMessage');
+const { registerMessageListener } = require('./listeners/messageListener');
+const { registerSession, setSessionStatus, registerSessionsRoute } = require('./routes/sessions');
 
-let lastQrData = null;
-// Initialize WhatsApp connection and then start the REST server
+const sessionName = 'server-session';
+
 wppconnect
   .create({
-    session: 'server-session',
+    session: sessionName,
     catchQR: (base64Qr, asciiQR, attempts, urlQR) => {
-      lastQrData = { base64Qr, asciiQR, attempts, urlQR };
+      setLastQrData({ base64Qr, asciiQR, attempts, urlQR });
     },
   })
   .then((client) => {
+    registerSession(sessionName);
+    setSessionStatus(sessionName, 'online');
+
+    client.onStateChange((state) => {
+      setSessionStatus(sessionName, state);
+    });
+
     const app = express();
-    console.log(client);
-    console.log(app);
     app.use(express.json());
 
-    // Endpoint to send text messages via POST
-    app.post('/send-message', async (req, res) => {
-      const { number, message } = req.body;
-      if (!number || !message) {
-        return res.status(400).json({ error: 'number and message are required' });
-      }
+    registerSendMessageRoute(app, client);
+    registerQrRoute(app);
+    registerSessionsRoute(app);
 
-      try {
-        await client.sendText(`${number}@c.us`, message);
-        res.json({ status: 'sent' });
-      } catch (error) {
-        res.status(500).json({ error: error.toString() });
-      }
-    });
-
-    app.get('/qr-code', (req, res) => {
-      if(!lastQrData){
-        return res.status(404).json({ error: 'QrCode not gerenated yet' });
-      }
-      res.json(lastQrData);
-    });
+    registerMessageListener(client);
 
     const port = process.env.PORT || 3000;
     app.listen(port, () => {
       console.log(`wppconnect server listening on ${port}`);
-      console.log(port);
     });
   })
   .catch((error) => {
