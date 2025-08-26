@@ -1,11 +1,16 @@
 const wppconnect = require('@wppconnect-team/wppconnect');
 const express = require('express');
+const path = require('path');
 const { setLastQrData, registerQrRoute } = require('./routes/qrCode');
 const { registerSendMessageRoute } = require('./routes/sendMessage');
 const { registerMessageListener } = require('./listeners/messageListener');
 const { registerSession, setSessionStatus, registerSessionsRoute } = require('./routes/sessions');
 
 const sessionName = 'server-session';
+const tokenFolder = path.resolve(__dirname, 'tokens');
+const fileTokenStore = new wppconnect.tokenStore.FileTokenStore({
+  path: tokenFolder,
+});
 
 wppconnect
   .create({
@@ -13,6 +18,9 @@ wppconnect
     catchQR: (base64Qr, asciiQR, attempts, urlQR) => {
       setLastQrData({ base64Qr, asciiQR, attempts, urlQR });
     },
+    folderNameToken: tokenFolder,
+    tokenStore: fileTokenStore,
+    autoClose: 0,
   })
   .then((client) => {
     registerSession(sessionName);
