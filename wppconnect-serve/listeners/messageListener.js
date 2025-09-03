@@ -1,13 +1,13 @@
 function registerMessageListener(client) {
   client.onMessage((message) => {
-    console.log('Received message:', message);
   });
-/*
+
   client.onMessage(async (message) => {
+    console.log(message.from)
     if (message.fromMe) return;
-    await client.sendText(message.from, 'Eu sou Leonardo, como posso te ajudar?');
+    await client.sendText(message.from, 'Eu sou o atendente inteligente da Cliente Já, como posso te ajudar?');
   });
-  */
+
 }
 
 module.exports = { registerMessageListener };
