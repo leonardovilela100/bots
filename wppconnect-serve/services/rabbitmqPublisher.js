@@ -13,17 +13,43 @@ const rabbitUrl =
 const queueName = process.env.RABBITMQ_WHATSAPP_QUEUE || DEFAULT_QUEUE;
 
 let channelPromise;
+let activeChannel;
+
+function registerChannelTeardown(channel, connection) {
+  const resetChannelPromise = () => {
+    if (activeChannel !== channel) {
+      return;
+    }
+
+    activeChannel = undefined;
+    channelPromise = undefined;
+
+    try {
+      connection.close().catch(() => {});
+    } catch (closeError) {
+      // Connection may already be closed or closing; ignore errors here.
+    }
+  };
+
+  connection.once('close', resetChannelPromise);
+  connection.once('error', resetChannelPromise);
+  channel.once('close', resetChannelPromise);
+  channel.once('error', resetChannelPromise);
+}
 
 async function createChannel() {
   const connection = await amqp.connect(rabbitUrl);
   const channel = await connection.createChannel();
   await channel.assertQueue(queueName, { durable: true });
+  activeChannel = channel;
+  registerChannelTeardown(channel, connection);
   return channel;
 }
 
 async function getChannel() {
   if (!channelPromise) {
     channelPromise = createChannel().catch((error) => {
+      activeChannel = undefined;
       channelPromise = undefined;
       throw error;
     });
@@ -42,6 +68,8 @@ async function publishWhatsAppMessage(message) {
     }
   } catch (error) {
     console.error('Failed to publish WhatsApp message to RabbitMQ', error);
+    activeChannel = undefined;
+    channelPromise = undefined;
   }
 }
 
