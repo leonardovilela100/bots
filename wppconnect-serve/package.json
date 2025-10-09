@@ -13,6 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "@wppconnect-team/wppconnect": "^1.37.2",
+    "amqplib": "^0.10.9",
     "body-parser": "^2.2.0",
     "express": "^5.1.0"
   }
