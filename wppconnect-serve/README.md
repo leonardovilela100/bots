@@ -17,3 +17,10 @@ docker run -p 3000:3000 wppconnect-serve
 ```
 
 The server will start on port 3000 by default.
+
+
+Running the server locally
+
+
+npm ci -- Limpa
+npm run dev -- Dev
